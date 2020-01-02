@@ -15,7 +15,7 @@ Required Components:
 
 Arduino to ADAM Connection:
 
-1. Follow the pin chart on page 4 of the "Coleco ADAM SD DDP Info Pack" to connect the ADAM to the Arduino, the Arduino to the OLED, SD Card Reader, and push buttons.
+1. Follow the pin chart on page 4 and the connection diagram on page 5 of the "Coleco ADAM SD DDP Info Pack" to connect the ADAM to the Arduino, the Arduino to the OLED, SD Card Reader, and push buttons.
 
 NOTE: Be careful and DO NOT connect anything to the voltage pins on the ADAM DDP Drive connector. This could damage your ADAM, Arduino or PC/Mac. See pages 2 & 3 of the "Coleco ADAM SD DDP Info Pack".
 
