@@ -5,11 +5,13 @@ Use at your own risk.
 
 Required Components:
 
-1. Arduino MEGA 2560 R3
-2. 0.96" I2C IIC Serial 128X64 White OLED LED Display Module for Arduino SSD1306
-3. Arduino ARM MCU SD Card Module Slot Socket Reader N150 *If you use a Micro SD card shield you may need to use pin 53 for CS instead of pin 10.  You would need to adjust the code to support this.
-4. 3 Momentary Push Buttons
-5. 3 220 oHm resistors
+1. Arduino MEGA 2560 R3 (~$13.00)
+2. 0.96" I2C IIC Serial 128X64 White OLED LED Display Module for Arduino SSD1306 (~$7.00)
+3. Arduino ARM MCU SD Card Module Slot Socket Reader N150 (<$4.00)
+*If you use a Micro SD card shield you may need to use pin 53 for CS instead of pin 10.  You would need to adjust the code to support this.
+4. 3 Momentary Push Buttons (<$5.00)
+5. 3 10K resistors (~$1.00)
+6. Breadboard (for button mounting) (<$2.00)
 
 Arduino to ADAM Connection:
 
