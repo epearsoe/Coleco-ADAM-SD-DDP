@@ -23,11 +23,12 @@ Installation:
 
 1. Install the Arduino IDE and configure it for the Mega2560: https://www.arduino.cc/
 2. Install the SD Card Library to your Arduino IDE: https://github.com/greiman/SdFat
-3. Two Adafruit libraries need to be installed: Adafruit_SSD1306, which handles the low-level communication with the hardware, and Adafruit_GFX, which builds atop this to add graphics functions like lines, circles and text. In recent versions of the Arduino IDE software (1.6.2 and later), this is most easily done through the Arduino Library Manager.
-4. How to install a library: https://www.arduino.cc/en/guide/libraries
-5. Download the latest SD DDP release from GitHub. Load it in the Arduino IDE. You should see all of the SD DDP tabs open in the Arduino IDE.
-6. Connect the Mega2560 to the USB port. Press the "Upload" button in the Arduino IDE to compile and upload.
-7. You should see the SD DDP starting up on the OLED.
+3. Install two Adafruit libraries need to be installed: Adafruit_SSD1306, which handles the low-level communication with the hardware, and Adafruit_GFX, which builds atop this to add graphics functions like lines, circles and text. In recent versions of the Arduino IDE software (1.6.2 and later), this is most easily done through the Arduino Library Manager.
+4. Install Fast Digital I/O library DIO2. https://www.codeproject.com/Articles/732646/Fast-digital-I-O-for-Arduino
+5. How to install a library: https://www.arduino.cc/en/guide/libraries
+6. Download the latest SD DDP release from GitHub. Load it in the Arduino IDE. You should see all of the SD DDP tabs open in the Arduino IDE.
+7. Connect the Mega2560 to the USB port. Press the "Upload" button in the Arduino IDE to compile and upload.
+8. You should see the SD DDP starting up on the OLED.
 
 Operation:
 
