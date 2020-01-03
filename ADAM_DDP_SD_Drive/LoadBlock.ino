@@ -1,16 +1,13 @@
 void LoadBlock(unsigned long blocknumber, unsigned int Index){                           // Load block from SD card to buffer array
   byte crcA = 0;
   byte crcB = 0;
-  //byte tempB = 0;
   byte checksum = 0;
-  //bool carry = false;
-  //bool rcarry = false;
   byte currentbyte = 0x00;
   int holdcurrentbyte = 0;
   int holdcrcB = 0;
-  //int phys_block = 0;
-  //byte phys_block = 0;
+  unsigned long sendblocknumber = 0;
 
+  sendblocknumber = blocknumber;
   PreviousBlock = CurrentBlock;
   digitalWrite(STATUSLED,HIGH);// Turn on the status LED
 
@@ -19,8 +16,8 @@ void LoadBlock(unsigned long blocknumber, unsigned int Index){                  
 
   file.open(sd.vwd(),Index, O_READ);
 
-  //if (blocknumber > 127)
-  //  blocknumber = blocknumber - 128;
+  if (sendblocknumber > 127)
+    sendblocknumber = sendblocknumber - 128;
   //calculate tape physical block
   //phys_block = 64 + CurrentBlock;
   //if (phys_block > 128)
@@ -43,11 +40,11 @@ void LoadBlock(unsigned long blocknumber, unsigned int Index){                  
   //headerdata[4] = 0x48;              //header id  'H'
   //headerdata[5] = 0x4E;              //header id  'E'
   headerdata[13] = 0x00;                //block
-  headerdata[14] = blocknumber;         //block
+  headerdata[14] = sendblocknumber;         //block
   //headerdata[7] = trackmap[blocknumber];   //block
   //headerdata[7] = phys_block_byte;   //block
   headerdata[15] = 0xff;                //ones complement
-  headerdata[16] = ~blocknumber;        //ones complement
+  headerdata[16] = ~sendblocknumber;        //ones complement
   //headerdata[9] = ~trackmap[blocknumber];  //one complement blocknumber
   //headerdata[9] = ~phys_block_byte;  //one complement blocknumber
   headerdata[17] = 0x00;               //max block hi
@@ -128,12 +125,12 @@ void LoadBlock(unsigned long blocknumber, unsigned int Index){                  
   */
   file.close();
   digitalWrite(STATUSLED,LOW);// Turn off the status LED
-  /*int counter = 0;
-  for (int i=11; i<=1034; i++) {
-    Serial.print(counter);
-    Serial.print(" - ");
-    Serial.println(blockdata[i],HEX);
-    counter++;
+  //int counter = 0;
+  /*for (int i=0; i<=19; i++) {
+    //Serial.print(counter);
+    //Serial.print(" - ");
+    Serial.println(headerdata[i],HEX);
+    //counter++;
   }*/
   //Serial.print("Block loaded = ");
   //Serial.println(CurrentBlock);

@@ -340,6 +340,7 @@ void loop() {
               Rewind();
               break;
             }
+            attachInterrupt(digitalPinToInterrupt(3), Stop, RISING);
             STOPPED = false;
             MOTORMOTION = true;
             REVERSEMOTION = true;
@@ -352,6 +353,7 @@ void loop() {
           break;
           case 3:
             LastCommandTime = millis();
+            attachInterrupt(digitalPinToInterrupt(3), Stop, RISING);
             STOPPED = false;
             MOTORMOTION = true;
             REVERSEMOTION = false;
