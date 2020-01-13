@@ -1,5 +1,6 @@
 void Stop()
 {
+  pinMode(TXpin, INPUT_PULLUP);
   digitalWrite2f(MSENSEpin, LOW);
   //detachInterrupt(digitalPinToInterrupt(2));
   detachInterrupt(digitalPinToInterrupt(3));

@@ -2,6 +2,8 @@ void Forward() {
   int BlocksPassed = 0;
   int TempBlock = 0;
 
+    pinMode(TXpin, OUTPUT);
+    
      //send block
     SendHeaderASM();
 

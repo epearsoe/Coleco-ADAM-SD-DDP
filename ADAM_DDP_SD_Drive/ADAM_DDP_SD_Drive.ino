@@ -1,6 +1,6 @@
 //*****************************************************************************************
 //
-// Coleco ADAM SD DDP source code version 1.0
+// Coleco ADAM SD DDP source code version 1.1
 //07/28/2019 - Start, designed DDP riser interface PCB to TAP signals. Waiting for PCB.
 //09/09/2019 - Was able to read a sync byte today.
 //11/26/2019 - Successfully read block header from tape.
@@ -15,6 +15,11 @@
 //             Multi-block reads successful.
 //             Multi-block program load from cold boot.
 //01/01/2020 - Fixed bug when loading tracks.
+//           - Initial release version 1.0
+//01/12/2020 - Version 1.1
+//           - Fixed SD card detection and display. Added option to insert card and press 'Mount' button to reinit SD.
+//           - Added STOP detection to prevent SD DDP from moving when physical DDP in motion.
+//           - Modified ADAM_DDP_SD_Drive, Forward, ProcessButtons, SDCardSetup, Stop.
 //*****************************************************************************************
 //
 // Emulates ADAM Digital Data Drive (DDP)
@@ -61,14 +66,14 @@
 #define BRAKE         30        //brake indicator pin 1-1
 #define REVERSE       32        //move backwards pin 1-2
 #define FORWARD       34        //move forward pin 1-3
-#define STOP          3         //stop indicator pin 1-4
+#define STOP          3         //stop indicator pin 1-4 (INT5)
 #define SPEED         38        //speed select pin 1-5
 #define MSENSE        40        //motion sense pin 1-7
 #define TAPEIN        42        //tape indicator pin 1-9
 #define TRACK         44        //track a/b pin 2-2
-#define MODE          2         //read/write mode pin 2-7
-#define RXpin         19        //pin to receive from tape 6801 pin 2-1 RX communication pin. (2 = PORTE = INT4 = PE4).
-#define TXpin         18        //pin to transmit to tape 6801 pin 2-5  TX communication pin. (3 = PORTE = PE5).
+#define MODE          2         //read/write mode pin 2-7 (INT4)
+#define RXpin         19        //pin to receive from tape 6801 pin 2-1 RX communication pin. (19 = PORTD = INT2 = PD2).
+#define TXpin         18        //pin to transmit to tape 6801 pin 2-5  TX communication pin. (18 = PORTD = PD3).
 #define STATUSLED     13        //13 is the internal LED on the Mega
 //↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
 //↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓   Only modify the following variables   ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
@@ -80,10 +85,10 @@ const unsigned int namelength = 100;       // Length of file name to display.
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 const int chipSelect = 10;                 // Chip select (CS) pin for the SD Card, (53)
 byte refreshscreen = 1;                    // Flag to refresh the LED display
-String motor_status[5] = {"STOP", " >  ", " <  ", " >> ", " << "};
+String motor_status[6] = {"STOP", " >  ", " <  ", " >> ", " << ", "BRAKE"};
 int motorstatus = 0;
-String status[9] = { "BRK", "STOP", "REV", "FWD","FAST",
-                     "READ", "A", "MOVE", "TOUT"};
+String status[10] = { "BRK", "STOP", "REV", "FWD","FAST",
+                     "READ", "A", "MOVE", "TOUT", "TXHIGH"};
 
 //arrays for sending and receiving data
 byte headerdata[20];                       //array for header data to be sent to tape 6801
@@ -97,6 +102,7 @@ byte writedata[1040];                      //array for data received from tape 6
 //sd card variables
 SdFat sd;                                  // Setup SD Card
 SdFile file;                               // Setup SD Card
+int sd_status = 0;
 unsigned int filesindex[maxfiles + 1];     // Index for the files on the SD card
 unsigned int numberoffiles = 0;            // The number of files on the SD card
 unsigned int currentfile = 1;              // The current file index number that being displayed
@@ -109,7 +115,7 @@ unsigned int ddpfileNumber = 0;            //current ddp image file number
 GPIO_pin_t STATUSLEDpin = DP13;
 
 //tape drive pins
-GPIO_pin_t BRAKEpin = DP30;                //
+GPIO_pin_t BRAKEpin = DP30;
 GPIO_pin_t REVERSEpin = DP32;
 GPIO_pin_t FORWARDpin = DP34;
 GPIO_pin_t STOPpin = DP3;
@@ -118,6 +124,7 @@ GPIO_pin_t MSENSEpin = DP40;
 GPIO_pin_t TAPEINpin = DP42;
 GPIO_pin_t TRACKpin = DP44;
 GPIO_pin_t MODEpin = DP2;
+GPIO_pin_t TX_pin = DP18;
 
 //flags
 bool MOTORMOTION = false;
@@ -126,6 +133,7 @@ bool REVERSEMOTION = false;
 bool STOPPED = true;
 bool NOTDONE = true;
 bool UPDATESTATUS = false;
+bool DEBUG = false;
 
 //butons
 int reading;
@@ -170,8 +178,9 @@ void setup() {
   //set RX and TX pins
   pinMode(RXpin,INPUT);               // Setup RXPin 19 to input
   EIFR = bit (INTF2);                 // Clear flag for interrupt 2
-  DDRD = DDRD | B00001000;
-  PORTD = PORTD & B11110111;          // Initialize PE5 LOW
+  pinMode(TXpin, OUTPUT);
+  //DDRD = DDRD | B00001000;
+  //PORTD = PORTD & B11110111;          // Initialize PD3 LOW
   
   //set LED pin
   pinMode(STATUSLED,OUTPUT);          // Set the status LED as output
@@ -200,7 +209,7 @@ void setup() {
   pinMode (buttonMOUNTpin, INPUT_PULLUP);
   
   //start led display
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))      // Address 0x3D for Adafruit 128x64 OLED
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))      // Address for Adafruit 128x64 OLED is 0x3D
   {
     Serial.println(F("SSD1306 allocation failed"));
   }
@@ -216,7 +225,16 @@ void setup() {
   Serial.println(CurrentTrack);
     
   //initialize sd card
-  SDCardSetup();                                     // Initialize the SD card and load the root directory
+  reinitsd:
+  sd_status = SDCardSetup();
+  while (sd_status == 1)
+  {
+    reading = digitalRead2f(bMOUNTpin);
+    if (reading == HIGH)
+    {
+      goto reinitsd;
+    }
+  }
   
   LastCommandTime = millis();                        // Setup initial time for last command in ms
 }
@@ -230,6 +248,7 @@ void loop() {
   }
   if ((digitalRead2f(BRAKEpin) == HIGH) && (STOPPED == false))
   {
+    pinMode(TXpin, INPUT_PULLUP);
     digitalWrite2f(MSENSEpin, LOW);
     detachInterrupt(digitalPinToInterrupt(2));
     detachInterrupt(digitalPinToInterrupt(3));
@@ -237,7 +256,7 @@ void loop() {
     MOTORMOTION = false;
     FORWARDMOTION = false;
     REVERSEMOTION = false;
-    motorstatus = 0;
+    motorstatus = 5;
     Update_Motor_Status();
   }
   if (digitalRead2f(TRACKpin) == HIGH) //track A
@@ -268,7 +287,9 @@ void loop() {
   if ((PreviousBlock != CurrentBlock) && (ddpregisterIt == 1) && (digitalRead2f(MODEpin) == HIGH)) //MODE is READ
     LoadBlock(CurrentBlock,ddpfileIndex);
   
-  if (digitalRead2f(TAPEINpin) == LOW)
+  Direction = 0;
+  
+  if (digitalRead2f(TAPEINpin) == LOW && digitalRead2f(STOPpin) == LOW) //STOP pin HIGH prevents tape from moving and data output when other drive is active
   {
     if ((digitalRead2f(FORWARDpin) == LOW) && (digitalRead2f(SPEEDpin) == HIGH))
       Direction = 3;

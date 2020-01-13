@@ -1,11 +1,17 @@
-void SDCardSetup(){                                                // Setup the SD Card
+int SDCardSetup(){                                                // Setup the SD Card
   pinMode(SS, OUTPUT);                     // This makes sure that the default hardware "Slave Select" pin is set to output, even if we use a different pin for chipSelect
   if (!sd.begin(chipSelect, SD_SCK_MHZ(50))) {// Initialize at the highest speed supported by the board that is not over 50 MHz. Try a lower speed if SPI errors occur.
+    display.setTextColor(WHITE);
     display.clearDisplay();
+    display.setTextSize(2);
     display.setCursor(0,0);
-    display.print("   No SD Card");
-    sd.initErrorHalt();
-    return;
+    display.println("No SD Card");
+    display.setTextSize(1);
+    display.println(" Insert SD Card");
+    display.println("  Press Mount");
+    display.display();
+    //sd.initErrorHalt();
+    return 1;
   }
   while (numberoffiles < maxfiles && file.openNext(sd.vwd(), O_READ)) {
     if (!file.isSubDir() && !file.isHidden()) {// Skip directories and hidden files.
@@ -34,4 +40,5 @@ void SDCardSetup(){                                                // Setup the 
   }
   if (numberoffiles > 0)
     ddpfilename = GetFileName(filesindex[currentfile]);
+  return 0;
 }

@@ -15,6 +15,8 @@ bool EQUAL = false;
             buttonstateUP = reading;
             if (buttonstateUP == LOW)
             {
+              if (DEBUG)
+                Report_Status();
               if (currentfile == numberoffiles){
                   currentfile = 1;
                   ddpfilename = GetFileName(filesindex[currentfile]);
@@ -88,6 +90,7 @@ bool EQUAL = false;
                   }
               else
                   {
+                    Serial.println("UnMounted");
                     ddpregisterIt = 0;
                     ddpfileIndex = 0;
                     ddpfileNumber = 0;
@@ -147,6 +150,13 @@ void Update_Show_Track() {
   display.display();
 }
 
+void Report_Status() {
+  while (NOTDONE)
+  {
+    ShowStatus();
+  }
+}
+
 void ShowStatus() {
   reading = digitalRead2f(BRAKEpin);
   if (reading == HIGH) {status[0] = "BRK";} else {status[0] = "OFF";}
@@ -175,11 +185,17 @@ void ShowStatus() {
   reading = digitalRead2f(TAPEINpin);
   if (reading == LOW) {status[8] = "TIN";} else {status[8] = "TOUT";}
 
+  reading = digitalRead2f(TX_pin);
+  if (reading == LOW) {status[9] = "TXLOW";} else {status[9] = "TXHIGH";}
+
   display.clearDisplay();
   display.setTextColor(WHITE);
   display.setTextSize(1);
   display.setCursor(0,0);
-  for (int j=0; j<7; j++)
+  display.print(status[0]);
+  display.print("    ");
+  display.println(status[9]);
+  for (int j=1; j<7; j++)
   {
     display.println(status[j]);
   }
