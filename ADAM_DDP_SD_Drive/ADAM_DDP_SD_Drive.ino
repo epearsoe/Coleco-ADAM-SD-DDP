@@ -1,6 +1,6 @@
 //*****************************************************************************************
 //
-// Coleco ADAM SD DDP source code version 1.1
+// Coleco ADAM SD DDP source code version 1.2
 //07/28/2019 - Start, designed DDP riser interface PCB to TAP signals. Waiting for PCB.
 //09/09/2019 - Was able to read a sync byte today.
 //11/26/2019 - Successfully read block header from tape.
@@ -20,6 +20,8 @@
 //           - Fixed SD card detection and display. Added option to insert card and press 'Mount' button to reinit SD.
 //           - Added STOP detection to prevent SD DDP from moving when physical DDP in motion.
 //           - Modified ADAM_DDP_SD_Drive, Forward, ProcessButtons, SDCardSetup, Stop.
+//01/13/2020 - Version 1.2
+//           - Fixed problem with reading blocks after FastFoward.
 //*****************************************************************************************
 //
 // Emulates ADAM Digital Data Drive (DDP)
@@ -59,7 +61,7 @@
 #include <SPI.h>
 #include <SdFat.h>
 #define  GPIO2_PREFER_SPEED  1
-#include <DIO2.h>  // include the fast I/O 2 functions
+#include <DIO2.h>               // include the fast I/O 2 functions
 #define SCREEN_WIDTH 128        // OLED display width, in pixels
 #define SCREEN_HEIGHT 64        // OLED display height, in pixels
 #define OLED_RESET     8        // OLED reset pin
@@ -133,7 +135,7 @@ bool REVERSEMOTION = false;
 bool STOPPED = true;
 bool NOTDONE = true;
 bool UPDATESTATUS = false;
-bool DEBUG = false;
+bool DEBUG = false;                        //change to true to enable ddp indicator monitor on OLED by pressing 'BACK' button
 
 //butons
 int reading;
@@ -178,9 +180,9 @@ void setup() {
   //set RX and TX pins
   pinMode(RXpin,INPUT);               // Setup RXPin 19 to input
   EIFR = bit (INTF2);                 // Clear flag for interrupt 2
-  pinMode(TXpin, OUTPUT);
-  //DDRD = DDRD | B00001000;
-  //PORTD = PORTD & B11110111;          // Initialize PD3 LOW
+
+  DDRD = DDRD | B00001000;
+  PORTD = PORTD & B11110111;          // Initialize PD3 LOW
   
   //set LED pin
   pinMode(STATUSLED,OUTPUT);          // Set the status LED as output
@@ -286,7 +288,7 @@ void loop() {
 
   if ((PreviousBlock != CurrentBlock) && (ddpregisterIt == 1) && (digitalRead2f(MODEpin) == HIGH)) //MODE is READ
     LoadBlock(CurrentBlock,ddpfileIndex);
-  
+
   Direction = 0;
   
   if (digitalRead2f(TAPEINpin) == LOW && digitalRead2f(STOPpin) == LOW) //STOP pin HIGH prevents tape from moving and data output when other drive is active
@@ -382,7 +384,6 @@ void loop() {
             motorstatus = 3;
             Update_Motor_Status();
             digitalWrite2f(MSENSEpin, HIGH);
-            delay(200);
             FastForward();
           break;
           default:

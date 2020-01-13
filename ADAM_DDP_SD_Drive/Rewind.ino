@@ -13,7 +13,6 @@ void Rewind() {
       BlocksPassed = (millis() - CurrentTime) / 220;
 
       TempBlock = CurrentBlock - BlocksPassed;
-      //Serial.println(TempBlock);
 
       if (CurrentTrack == 1)
       {

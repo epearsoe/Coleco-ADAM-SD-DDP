@@ -10,7 +10,6 @@ int SDCardSetup(){                                                // Setup the S
     display.println(" Insert SD Card");
     display.println("  Press Mount");
     display.display();
-    //sd.initErrorHalt();
     return 1;
   }
   while (numberoffiles < maxfiles && file.openNext(sd.vwd(), O_READ)) {

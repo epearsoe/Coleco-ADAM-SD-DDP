@@ -7,7 +7,7 @@ void Forward() {
      //send block
     SendHeaderASM();
 
-    delay(50);
+    delay(100);
     SendDataASM();
 
     delay(2);
@@ -41,7 +41,7 @@ void FastForward() {
         if (TempBlock > 127)
           break;
       }
-    } while (digitalRead2f(SPEEDpin) == HIGH);
+    } while (digitalRead2f(FORWARDpin) == LOW);
 
     //how many blocks have passed under read head
     BlocksPassed = (millis() - CurrentTime) / 220;
@@ -70,5 +70,5 @@ void FastForward() {
         digitalWrite2f(MSENSEpin, LOW);
       }
     }
-      
+    LoadBlock(CurrentBlock,ddpfileIndex);  
 }
