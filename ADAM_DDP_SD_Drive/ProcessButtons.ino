@@ -16,7 +16,9 @@ bool EQUAL = false;
             if (buttonstateUP == LOW)
             {
               if (DEBUG)
-                Report_Status();
+              {
+                MONITORON = !MONITORON;
+              }
               if (currentfile == numberoffiles){
                   currentfile = 1;
                   ddpfilename = GetFileName(filesindex[currentfile]);
@@ -79,13 +81,13 @@ bool EQUAL = false;
                     ddpfilename = GetFileName(filesindex[currentfile]);
                     refreshscreen = 1;
                     if (CurrentTrack == 1)
-                      CurrentBlock = 254;
+                      CurrentBlock = 128;
                     else
                       CurrentBlock = 0;
                     LoadBlock(CurrentBlock, ddpfileIndex);
                     Serial.print("Mounted ");
                     Serial.println(ddpfilename);
-                    digitalWrite(TAPEIN, LOW);
+                    digitalWrite2f(TAPEINpin, LOW);
                     __asm__("nop\n\t""nop\n\t");
                   }
               else
@@ -158,49 +160,52 @@ void Report_Status() {
 }
 
 void ShowStatus() {
-  reading = digitalRead2f(BRAKEpin);
-  if (reading == HIGH) {status[0] = "BRK";} else {status[0] = "OFF";}
+  //reading = digitalRead2f(BRAKEpin);
+  //if (reading == HIGH) {status[0] = "BRK";} else {status[0] = "OFF";}
   
   reading = digitalRead2f(STOPpin);
-  if (reading == HIGH) {status[1] = "STOP";} else {status[1] = "OFF";}
+  if (reading == HIGH) {status[0] = "STOP";} else {status[1] = "OFF";}
   
   reading = digitalRead2f(REVERSEpin);
-  if (reading == LOW) {status[2] = "REV";} else {status[2] = "OFF";}
+  if (reading == LOW) {status[1] = "REV";} else {status[2] = "OFF";}
   
   reading = digitalRead2f(FORWARDpin);
-  if (reading == LOW) {status[3] = "FWD";} else {status[3] = "OFF";}
+  if (reading == LOW) {status[2] = "FWD";} else {status[3] = "OFF";}
   
   reading = digitalRead2f(SPEEDpin);
-  if (reading == HIGH) {status[4] = "FAST";} else {status[4] = "SLOW";}
+  if (reading == HIGH) {status[3] = "FAST";} else {status[4] = "SLOW";}
   
   reading = digitalRead2f(MODEpin);
-  if (reading == HIGH) {status[5] = "READ";} else {status[5] = "WRITE";}
+  if (reading == HIGH) {status[4] = "READ";} else {status[5] = "WRITE";}
   
   reading = digitalRead2f(TRACKpin);
-  if (reading == HIGH) {status[6] = "A";} else {status[6] = "B";}
+  if (reading == HIGH) {status[5] = "A";} else {status[6] = "B";}
 
   reading = digitalRead2f(MSENSEpin);
-  if (reading == HIGH) {status[7] = "MOVE";} else {status[7] = "|";}
+  if (reading == HIGH) {status[6] = "MOVE";} else {status[7] = "|";}
   
   reading = digitalRead2f(TAPEINpin);
-  if (reading == LOW) {status[8] = "TIN";} else {status[8] = "TOUT";}
+  if (reading == LOW) {status[7] = "TIN";} else {status[8] = "TOUT";}
 
   reading = digitalRead2f(TX_pin);
-  if (reading == LOW) {status[9] = "TXLOW";} else {status[9] = "TXHIGH";}
+  if (reading == LOW) {status[8] = "TXLOW";} else {status[9] = "TXHIGH";}
+
+  //reading = digitalRead2f(NOCONpin);
+  //if (reading == LOW) {status[10] = "NCLOW";} else {status[10] = "NCHIGH";}
+
+  reading = digitalRead(RXpin);
+  if (reading == LOW) {status[9] = "RXLOW";} else {status[11] = "RXHIGH";}
 
   display.clearDisplay();
   display.setTextColor(WHITE);
   display.setTextSize(1);
   display.setCursor(0,0);
-  display.print(status[0]);
-  display.print("    ");
-  display.println(status[9]);
-  for (int j=1; j<7; j++)
+  for (int j=0; j<8; j++)
   {
     display.println(status[j]);
   }
-  display.print(status[7]);
+  display.print(status[8]);
   display.print("    ");
-  display.println(status[8]);
+  display.println(status[9]);
   display.display();
 }

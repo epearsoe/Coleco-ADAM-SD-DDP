@@ -109,4 +109,5 @@ void Rewind() {
       }
     }
   }
+  LoadBlock(CurrentBlock,ddpfileIndex);
 }

@@ -22,6 +22,10 @@
 //           - Modified ADAM_DDP_SD_Drive, Forward, ProcessButtons, SDCardSetup, Stop.
 //01/13/2020 - Version 1.2
 //           - Fixed problem with reading blocks after FastFoward.
+//05/27/2020 - Version 1.3
+//           - Changed virtual disk format from GW to HE which now allows for the SD DDP to work with a real DDP.
+//           - Successful block copy from real DDP with both left and center directory format to SD DDP.
+//           - Added SN74LS7406N to ensure HI-Z state when SD DDP is stopped.
 //*****************************************************************************************
 //
 // Emulates ADAM Digital Data Drive (DDP)
@@ -65,18 +69,17 @@
 #define SCREEN_WIDTH 128        // OLED display width, in pixels
 #define SCREEN_HEIGHT 64        // OLED display height, in pixels
 #define OLED_RESET     8        // OLED reset pin
-#define BRAKE         30        //brake indicator pin 1-1
+#define MODE          2         //read/write mode pin 2-7 (INT4)
+#define STOP          3         //stop indicator pin 1-4 (INT5)
+#define STATUSLED     13        //13 is the internal LED on the Mega
+#define TXpin         18        //pin to transmit to tape 6801 pin 2-5  TX communication pin. (18 = PORTD = PD3).
+#define RXpin         19        //pin to receive from tape 6801 pin 2-1 RX communication pin. (19 = PORTD = INT2 = PD2).
 #define REVERSE       32        //move backwards pin 1-2
 #define FORWARD       34        //move forward pin 1-3
-#define STOP          3         //stop indicator pin 1-4 (INT5)
-#define SPEED         38        //speed select pin 1-5
-#define MSENSE        40        //motion sense pin 1-7
-#define TAPEIN        42        //tape indicator pin 1-9
-#define TRACK         44        //track a/b pin 2-2
-#define MODE          2         //read/write mode pin 2-7 (INT4)
-#define RXpin         19        //pin to receive from tape 6801 pin 2-1 RX communication pin. (19 = PORTD = INT2 = PD2).
-#define TXpin         18        //pin to transmit to tape 6801 pin 2-5  TX communication pin. (18 = PORTD = PD3).
-#define STATUSLED     13        //13 is the internal LED on the Mega
+#define SPEED         36        //speed select pin 1-5
+#define MSENSE        38        //motion sense pin 1-7
+#define TAPEIN        40        //tape indicator pin 1-9
+#define TRACK         42        //track a/b pin 2-2
 //↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
 //↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓   Only modify the following variables   ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
 const unsigned int maxfiles = 200;         // The maximum number of file names to load into the directory index array.
@@ -87,10 +90,10 @@ const unsigned int namelength = 100;       // Length of file name to display.
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 const int chipSelect = 10;                 // Chip select (CS) pin for the SD Card, (53)
 byte refreshscreen = 1;                    // Flag to refresh the LED display
-String motor_status[6] = {"STOP", " >  ", " <  ", " >> ", " << ", "BRAKE"};
+String motor_status[] = {"STOP", " >  ", " <  ", " >> ", " << "};
 int motorstatus = 0;
-String status[10] = { "BRK", "STOP", "REV", "FWD","FAST",
-                     "READ", "A", "MOVE", "TOUT", "TXHIGH"};
+String status[] = { "BRK", "STOP", "REV", "FWD","FAST",
+                     "READ", "A", "MOVE", "TOUT", "TXHIGH","NCHIGH", "RXHIGH"};
 
 //arrays for sending and receiving data
 byte headerdata[20];                       //array for header data to be sent to tape 6801
@@ -117,16 +120,23 @@ unsigned int ddpfileNumber = 0;            //current ddp image file number
 GPIO_pin_t STATUSLEDpin = DP13;
 
 //tape drive pins
-GPIO_pin_t BRAKEpin = DP30;
+GPIO_pin_t MODEpin = DP2;
+GPIO_pin_t STOPpin = DP3;
+GPIO_pin_t TX_pin = DP18;
+GPIO_pin_t RX_pin = DP19;
 GPIO_pin_t REVERSEpin = DP32;
 GPIO_pin_t FORWARDpin = DP34;
-GPIO_pin_t STOPpin = DP3;
-GPIO_pin_t SPEEDpin = DP38;
-GPIO_pin_t MSENSEpin = DP40;
-GPIO_pin_t TAPEINpin = DP42;
-GPIO_pin_t TRACKpin = DP44;
-GPIO_pin_t MODEpin = DP2;
-GPIO_pin_t TX_pin = DP18;
+GPIO_pin_t SPEEDpin = DP36;
+GPIO_pin_t MSENSEpin = DP38;
+GPIO_pin_t TAPEINpin = DP40;
+GPIO_pin_t TRACKpin = DP42;
+
+int readSTOP;
+int readSPEED;
+int readFORWARD;
+int readREVERSE;
+int readTRACK;
+int readTAPEIN;
 
 //flags
 bool MOTORMOTION = false;
@@ -136,6 +146,9 @@ bool STOPPED = true;
 bool NOTDONE = true;
 bool UPDATESTATUS = false;
 bool DEBUG = false;                        //change to true to enable ddp indicator monitor on OLED by pressing 'BACK' button
+bool MONITORON = false;
+bool READSTOP = false;
+bool MSENSEPULSE = false;
 
 //butons
 int reading;
@@ -165,7 +178,7 @@ unsigned long LastCommandTime = 0;
 unsigned long CurrentTime = 0;
 unsigned long TrackTimer = 0;
 
-int CurrentBlock = 254;
+int CurrentBlock = 128;
 int PreviousBlock = 1;
 unsigned int CurrentTrack = 1;
 int Direction = 0;
@@ -178,11 +191,13 @@ void setup() {
 
   //set pin modes
   //set RX and TX pins
-  pinMode(RXpin,INPUT);               // Setup RXPin 19 to input
+  pinMode(RXpin,INPUT);               // Setup RXPin 19 PD2 to input
   EIFR = bit (INTF2);                 // Clear flag for interrupt 2
 
-  DDRD = DDRD | B00001000;
-  PORTD = PORTD & B11110111;          // Initialize PD3 LOW
+  pinMode(TXpin,OUTPUT);
+  //PORTD |= 0b00001000;                // Set PD3 (TX) = HIGH
+  digitalWrite(TXpin, LOW);
+  //PORTD = PORTD & 0b11110111;         // Set PD3 = LOW
   
   //set LED pin
   pinMode(STATUSLED,OUTPUT);          // Set the status LED as output
@@ -193,22 +208,21 @@ void setup() {
   digitalWrite(10, HIGH);             
 
   //set tape indicator pins
-  pinMode (BRAKE, INPUT_PULLUP);
-  pinMode (REVERSE, INPUT_PULLUP);
-  pinMode (FORWARD, INPUT_PULLUP);
-  pinMode (STOP, INPUT_PULLUP);
-  pinMode (SPEED, INPUT_PULLUP);
-  pinMode (TRACK, INPUT_PULLUP);
-  pinMode (MODE, INPUT_PULLUP);
-  pinMode (MSENSE, OUTPUT);
+  pinMode(REVERSE, INPUT);
+  pinMode(FORWARD, INPUT);
+  pinMode(STOP, INPUT);
+  pinMode(SPEED, INPUT);
+  pinMode(TRACK, INPUT);
+  pinMode(MODE, INPUT);
+  pinMode(MSENSE, OUTPUT);
   digitalWrite(MSENSE, LOW);
-  pinMode (TAPEIN, OUTPUT);
+  pinMode(TAPEIN, OUTPUT);
   digitalWrite(TAPEIN, HIGH);
 
   //set button pins
-  pinMode (buttonUPpin, INPUT_PULLUP);
-  pinMode (buttonDOWNpin, INPUT_PULLUP);
-  pinMode (buttonMOUNTpin, INPUT_PULLUP);
+  pinMode(buttonUPpin, INPUT_PULLUP);
+  pinMode(buttonDOWNpin, INPUT_PULLUP);
+  pinMode(buttonMOUNTpin, INPUT_PULLUP);
   
   //start led display
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))      // Address for Adafruit 128x64 OLED is 0x3D
@@ -243,30 +257,29 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+  readSTOP = digitalRead2f(STOPpin);
+  readSPEED = digitalRead2f(SPEEDpin);
+  readFORWARD = digitalRead2f(FORWARDpin);
+  readREVERSE = digitalRead2f(REVERSEpin);
+  readTRACK = digitalRead2f(TRACKpin);
+  readTAPEIN = digitalRead2f(TAPEINpin);
+    
   if (UPDATESTATUS)
   {
     Update_Motor_Status();
     UPDATESTATUS = false;
   }
-  if ((digitalRead2f(BRAKEpin) == HIGH) && (STOPPED == false))
-  {
-    pinMode(TXpin, INPUT_PULLUP);
-    digitalWrite2f(MSENSEpin, LOW);
-    detachInterrupt(digitalPinToInterrupt(2));
-    detachInterrupt(digitalPinToInterrupt(3));
-    STOPPED = true;
-    MOTORMOTION = false;
-    FORWARDMOTION = false;
-    REVERSEMOTION = false;
-    motorstatus = 5;
-    Update_Motor_Status();
-  }
-  if (digitalRead2f(TRACKpin) == HIGH) //track A
+  
+  if (MONITORON)
+    ShowStatus();
+    
+  if (readTRACK == HIGH) //track A
   {
     if (CurrentTrack == 0)
     {
       CurrentBlock = 128 + CurrentBlock;
       CurrentTrack = 1;
+      LoadBlock(CurrentBlock,ddpfileIndex);
       Serial.print("Current Block= ");
       Serial.println(CurrentBlock);
       Serial.print("Current Track= ");
@@ -279,6 +292,7 @@ void loop() {
     {
       CurrentBlock = CurrentBlock - 128;
       CurrentTrack = 0;
+      LoadBlock(CurrentBlock,ddpfileIndex);
       Serial.print("Current Block= ");
       Serial.println(CurrentBlock);
       Serial.print("Current Track= ");
@@ -286,109 +300,101 @@ void loop() {
     }
   }
 
-  if ((PreviousBlock != CurrentBlock) && (ddpregisterIt == 1) && (digitalRead2f(MODEpin) == HIGH)) //MODE is READ
-    LoadBlock(CurrentBlock,ddpfileIndex);
-
-  Direction = 0;
-  
-  if (digitalRead2f(TAPEINpin) == LOW && digitalRead2f(STOPpin) == LOW) //STOP pin HIGH prevents tape from moving and data output when other drive is active
+  if (readTAPEIN == LOW && readSTOP == LOW) //STOP pin HIGH prevents tape from moving and data output when other drive is active
   {
-    if ((digitalRead2f(FORWARDpin) == LOW) && (digitalRead2f(SPEEDpin) == HIGH))
-      Direction = 3;
-    else if (digitalRead2f(FORWARDpin) == LOW)
-      Direction = 1;
-    else if (digitalRead2f(REVERSEpin) == LOW)
-      Direction = 2;
-    else
-      Direction = 0;
-  }
-
-  switch (Direction)
+    if ((readFORWARD == LOW) && (readSPEED == HIGH))
+    {
+      LastCommandTime = millis();
+      //Serial.println("F");
+      attachInterrupt(digitalPinToInterrupt(3), Stop, RISING);
+      READSTOP = false;
+      STOPPED = false;
+      MOTORMOTION = true;
+      REVERSEMOTION = false;
+      FORWARDMOTION = false;
+      motorstatus = 3;
+      Update_Motor_Status();
+      PORTD |= 0b10000000;                        // Set MSENSE PD7 = HIGH
+      FastForward();
+    }
+    else if (readFORWARD == LOW)
+    {
+      LastCommandTime = millis();
+      //Serial.println("B");
+      if (FORWARDMOTION == true)
+      {
+          delay(200);
+          Forward();
+          goto breakout;
+      }
+      attachInterrupt(digitalPinToInterrupt(2), ReadFrom6801, LOW);
+      attachInterrupt(digitalPinToInterrupt(3), Stop, RISING);
+      if (readTRACK == HIGH) //track A
+      {
+       if (CurrentTrack == 0)
         {
-          case 0:
-            if ((FORWARDMOTION == true) || (REVERSEMOTION == true))
-            {
-              MOTORMOTION = false;
-              FORWARDMOTION = false;
-              REVERSEMOTION = false;
-              motorstatus = 0;
-              digitalWrite2f(MSENSEpin, LOW);
-              Update_Motor_Status();
-            }
-          break;
-          case 1:
-            LastCommandTime = millis();
-            if (FORWARDMOTION == true)
-            {
-              delay(200);
-              Forward();
-              break;
-            }
-            attachInterrupt(digitalPinToInterrupt(2), ReadFrom6801, LOW);
-            attachInterrupt(digitalPinToInterrupt(3), Stop, RISING);
-            if (digitalRead2f(TRACKpin) == HIGH) //track A
-            {
-              if (CurrentTrack == 0)
-              {
-                CurrentBlock = 128 + CurrentBlock;
-                CurrentTrack = 1;
-                if ((PreviousBlock != CurrentBlock) && (ddpregisterIt == 1) && (digitalRead2f(MODEpin) == HIGH)) //MODE is READ
-                  LoadBlock(CurrentBlock,ddpfileIndex);
-              }
-            }
-            else                            //track B
-            {
-              if (CurrentTrack == 1)
-              {
-                CurrentBlock = CurrentBlock - 128;
-                CurrentTrack = 0;
-                if ((PreviousBlock != CurrentBlock) && (ddpregisterIt == 1) && (digitalRead2f(MODEpin) == HIGH)) //MODE is READ
-                  LoadBlock(CurrentBlock,ddpfileIndex);
-              }
-            }
-            STOPPED = false;
-            MOTORMOTION = true;
-            FORWARDMOTION = true;
-            REVERSEMOTION = false;
-            digitalWrite2f(MSENSEpin, HIGH);
-            motorstatus = 1;
-            Update_Motor_Status();
-            delay(210);
-            Forward();
-          break;
-          case 2:
-            LastCommandTime = millis();
-            if (REVERSEMOTION == true)
-            {
-              Rewind();
-              break;
-            }
-            attachInterrupt(digitalPinToInterrupt(3), Stop, RISING);
-            STOPPED = false;
-            MOTORMOTION = true;
-            REVERSEMOTION = true;
-            FORWARDMOTION = false;
-            motorstatus = 2;
-            Update_Motor_Status();
-            digitalWrite2f(MSENSEpin, HIGH);
-            delay(110);
-            Rewind();
-          break;
-          case 3:
-            LastCommandTime = millis();
-            attachInterrupt(digitalPinToInterrupt(3), Stop, RISING);
-            STOPPED = false;
-            MOTORMOTION = true;
-            REVERSEMOTION = false;
-            FORWARDMOTION = false;
-            motorstatus = 3;
-            Update_Motor_Status();
-            digitalWrite2f(MSENSEpin, HIGH);
-            FastForward();
-          break;
-          default:
-          break;
+          CurrentBlock = 128 + CurrentBlock;
+          CurrentTrack = 1;
+          LoadBlock(CurrentBlock,ddpfileIndex);
         }
+      }
+      else                            //track B
+      {
+        if (CurrentTrack == 1)
+        {
+          CurrentBlock = CurrentBlock - 128;
+          CurrentTrack = 0;
+          LoadBlock(CurrentBlock,ddpfileIndex);
+        }
+      }
+      READSTOP = false;
+      STOPPED = false;
+      MOTORMOTION = true;
+      FORWARDMOTION = true;
+      REVERSEMOTION = false;
+      PORTD |= 0b10000000;                // Set MSENSE PD7 = HIGH
+      motorstatus = 1;
+      Update_Motor_Status();
+      delay(210);
+      Forward();
+    }
+    else if (readREVERSE == LOW)
+    {
+      LastCommandTime = millis();
+      //Serial.println("R");
+      if (REVERSEMOTION == true)
+      {
+              Rewind();
+              goto breakout;
+      }
+      attachInterrupt(digitalPinToInterrupt(3), Stop, RISING);
+      READSTOP = false;
+      STOPPED = false;
+      MOTORMOTION = true;
+      REVERSEMOTION = true;
+      FORWARDMOTION = false;
+      motorstatus = 2;
+      Update_Motor_Status();
+      PORTD |= 0b10000000;                        // Set MSENSE PD7 = HIGH
+      delay(110);
+      Rewind();
+    }
+    else
+    {
+      if ((FORWARDMOTION == true) || (REVERSEMOTION == true))
+      {
+        //Serial.println("C0");
+        UPDATESTATUS = true;
+        MOTORMOTION = false;
+        FORWARDMOTION = false;
+        REVERSEMOTION = false;
+        motorstatus = 0;
+        digitalWrite(TXpin, LOW);
+        PORTD = PORTD & 0b01111111;                 // Set MSENSE PD7 = LOW
+      }
+    }
+  }
+breakout:
   CommandDelay = millis() - LastCommandTime;
   if (CommandDelay >= 500){                // Has it been at least 500 ms since the drive processed a command?
                                            // This ensures that we are not changing files in the middle of processing

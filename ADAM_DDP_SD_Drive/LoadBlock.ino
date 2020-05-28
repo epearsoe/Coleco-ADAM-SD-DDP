@@ -6,9 +6,17 @@ void LoadBlock(unsigned long blocknumber, unsigned int Index){                  
   int holdcurrentbyte = 0;
   int holdcrcB = 0;
   unsigned long sendblocknumber = 0;
-
+  
   sendblocknumber = blocknumber;
+  if (blocknumber < 64)
+    blocknumber = 64 + blocknumber;
+  else if (blocknumber > 63 && blocknumber < 127)
+    blocknumber = blocknumber - 64;
+
+  //Serial.println(blocknumber);
+  
   PreviousBlock = CurrentBlock;
+  
   digitalWrite(STATUSLED,HIGH);// Turn on the status LED
 
   file.open(sd.vwd(),Index, O_READ);
@@ -21,8 +29,10 @@ void LoadBlock(unsigned long blocknumber, unsigned int Index){                  
   for (int i=0; i<10; i++)
     headerdata[i] = 0x00;
   headerdata[10] = 0x16;                //sync byte
-  headerdata[11] = 0x47;                //header id  'G'
-  headerdata[12] = 0x57;                //header id  'W'
+  //headerdata[11] = 0x47;                //header id  'G'
+  //headerdata[12] = 0x57;                //header id  'W'
+  headerdata[11] = 0x48;              //header id  'H'
+  headerdata[12] = 0x45;              //header id  'E'
   headerdata[13] = 0x00;                //block
   headerdata[14] = sendblocknumber;         //block
   headerdata[15] = 0xff;                //ones complement

@@ -1,22 +1,21 @@
 void Forward() {
-  int BlocksPassed = 0;
-  int TempBlock = 0;
-
-    pinMode(TXpin, OUTPUT);
     
      //send block
     SendHeaderASM();
 
+    if (STOPPED)
+      goto increment;
+      
     delay(100);
     SendDataASM();
 
     delay(2);
     SendCRCASM();
 
+increment:
     //increment block
     CurrentBlock++;
-
-    return;
+    LoadBlock(CurrentBlock,ddpfileIndex);
 }
 
 void FastForward() {
