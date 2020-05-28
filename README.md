@@ -1,17 +1,19 @@
-# Coleco-ADAM-SD-DDP
 Coleco ADAM SD DDP 01/01/2020
 
 Use at your own risk.
+
+NOTE: The Arduino pinouts and some components have changed as of version 1.3.
 
 Required Components:
 
 1. Arduino MEGA 2560 R3 (~$13.00)
 2. 0.96" I2C IIC Serial 128X64 White OLED LED Display Module for Arduino SSD1306 (~$7.00)
-3. Arduino ARM MCU SD Card Module Slot Socket Reader N150 (<$4.00)
-*If you use a Micro SD card shield you may need to use pin 53 for CS instead of pin 10.  You would need to adjust the code to support this.
+3. Arduino ARM MCU SD Card Module Slot Socket Reader N150 (<$4.00) *If you use a Micro SD card shield you may need to use pin 53 for CS instead of pin 10. You would need to adjust the code to support this.
 4. 3 Momentary Push Buttons (<$5.00)
 5. 3 10K resistors (~$1.00)
-6. Breadboard (for button mounting) (<$2.00)
+6. 1 1K resistors
+7. 1 SN74LS7406N
+8. Breadboard (for button mounting) (<$2.00)
 
 Arduino to ADAM Connection:
 
@@ -38,4 +40,4 @@ http://adamarchive.org/
 
 On startup of the SD DDP there is no mounted file. Two buttons are used to scroll though the files on the SD card; forward and backward. The third button is used to Mount/Unmount a DDP image. When an image is mounted it's filename will show in reverse text on the OLED. To load and run the image pull the computer reset switch on the ADAM (the left switch).
 
-Included is also a utility program called deinterleave.exe for Windows 10 PCs.  This utility will convert a ADAM DSK image to an ADAM DDP formated image.
+Included is also a utility program called deinterleave.exe for Windows 10 PCs. This utility will convert a ADAM DSK image to an ADAM DDP formated image.
