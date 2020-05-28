@@ -12,7 +12,7 @@ Required Components:
 4. 3 Momentary Push Buttons (<$5.00)
 5. 3 10K resistors (~$1.00)
 6. 1 1K resistors
-7. 1 SN74LS7406N
+7. 1 SN74LS06N
 8. Breadboard (for button mounting) (<$2.00)
 
 Arduino to ADAM Connection:
