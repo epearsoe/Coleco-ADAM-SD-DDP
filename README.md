@@ -11,7 +11,7 @@ Required Components:
 3. Arduino ARM MCU SD Card Module Slot Socket Reader N150 (<$4.00) *If you use a Micro SD card shield you may need to use pin 53 for CS instead of pin 10. You would need to adjust the code to support this.
 4. 3 Momentary Push Buttons (<$5.00)
 5. 3 10K resistors (~$1.00)
-6. 1 1K resistors
+6. 1 1K resistor
 7. 1 SN74LS06N
 8. Breadboard (for button mounting) (<$2.00)
 
@@ -40,4 +40,4 @@ http://adamarchive.org/
 
 On startup of the SD DDP there is no mounted file. Two buttons are used to scroll though the files on the SD card; forward and backward. The third button is used to Mount/Unmount a DDP image. When an image is mounted it's filename will show in reverse text on the OLED. To load and run the image pull the computer reset switch on the ADAM (the left switch).
 
-Included is also a utility program called deinterleave.exe for Windows 10 PCs. This utility will convert a ADAM DSK image to an ADAM DDP formated image.
+Included are two utility programs called deinterleave.exe and interleave.exe for Windows 10 PCs. Deinterleave.exe will convert a ADAM DSK image to an ADAM DDP formated image.  Interleave.exe does the opposite. It will convert an ADAM DDP image to an ADAM DSK formatted image.
