@@ -1,4 +1,4 @@
-Coleco ADAM SD DDP 01/01/2020
+Coleco ADAM SD DDP version 1.4 6/17/2020 (initial release 01/01/2020)
 
 Use at your own risk.
 
@@ -9,8 +9,8 @@ Required Components:
 1. Arduino MEGA 2560 R3 (~$13.00)
 2. 0.96" I2C IIC Serial 128X64 White OLED LED Display Module for Arduino SSD1306 (~$7.00)
 3. Arduino ARM MCU SD Card Module Slot Socket Reader N150 (<$4.00) *If you use a Micro SD card shield you may need to use pin 53 for CS instead of pin 10. You would need to adjust the code to support this.
-4. 3 Momentary Push Buttons (<$5.00)
-5. 3 10K resistors (~$1.00)
+4. 4 Momentary Push Buttons (<$5.00)
+5. 4 10K resistors (~$1.00)
 6. 1 1K resistor
 7. 1 SN74LS06N
 8. Breadboard (for button mounting) (<$2.00)
@@ -38,6 +38,20 @@ Using a PC or Mac, copy up to 200 files to a FAT32 formated SD card. These must 
 
 http://adamarchive.org/
 
-On startup of the SD DDP there is no mounted file. Two buttons are used to scroll though the files on the SD card; forward and backward. The third button is used to Mount/Unmount a DDP image. When an image is mounted it's filename will show in reverse text on the OLED. To load and run the image pull the computer reset switch on the ADAM (the left switch).
+Power-On Sequence:
+1. Turn on the SD DDP.
+2. Turn on the ADAM computer.
+3. Select a DDP image to mount using the forward and backward selection buttons.
+4. Mount a DDP image with the mount button. When an image is mounted it's filename will show in reverse text on the OLED.
+5. Pull the computer reset switch (the left switch) on the ADAM computer to load and run the mounted image.
+
+Known Quirks of the ADAM SD DDP Drive:
+1. Because the DDP uses all active-low signals there is no way for the SD DDP to know when the ADAM is turned on or off.  If you mount an image before turning on the ADAM computer all buttons will cease to function until the ADAM is turned on.
+2. The "Tape Mode" button.  Coleco used two different tape formats for the ADAM; a center directory format and a right directory format (primarily used for "Super Games").  If you plan to use a real DDP drive with the ADAM SD DDP you should use the "Tape Mode" button to set the ADAM SD DDP to the same format as the tape you will be using in the real DDP. If you want to switch tape formats you will need to select it with the "Tape Mode" button and then pull the ADAM computer reset switch. This problem exists also if you are using two real ADAM DDP drives.
+
+ADAM SD DDP Drive OLED Display Legend:
+1. In the top left corner of the screen will be the letters "CD" ofr center directory tape mode or "RD" for right directory tape mode.  This can be changed using the "Tape Mode" button.
+2. In the top center of the screen will be the current drive status. This could show "STOP", ">>" (fast forward), "<<" (fast rewind), "> NNN" (slow forward where NNN is the current track), or "<" (slow rewind).
+3. Below the top line will be a filename of a DDP image (if any .DDP files are found on the SD card). If the text is in reverse mode this means this file is "mounted".
 
 Included are two utility programs called deinterleave.exe and interleave.exe for Windows 10 PCs. Deinterleave.exe will convert a ADAM DSK image to an ADAM DDP formated image.  Interleave.exe does the opposite. It will convert an ADAM DDP image to an ADAM DSK formatted image.
