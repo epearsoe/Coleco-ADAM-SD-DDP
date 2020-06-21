@@ -15,10 +15,6 @@ bool EQUAL = false;
             buttonstateUP = reading;
             if (buttonstateUP == LOW)
             {
-              if (DEBUG)
-              {
-                MONITORON = !MONITORON;
-              }
               if (currentfile == numberoffiles){
                   currentfile = 1;
                   ddpfilename = GetFileName(filesindex[currentfile]);
@@ -105,12 +101,38 @@ bool EQUAL = false;
           }
         }
         lastbMOUNTstate = reading;
+
+        //mode toggle
+        reading = digitalRead2f(bMODEpin);
+        if (reading != lastbMODEstate)
+        {
+          lastDebounceTimeMODE = millis();
+        }
+        if ((millis() - lastDebounceTimeMODE) > debounceDelay)
+        {
+          if (reading != buttonstateMODE)
+          {
+            buttonstateMODE = reading;
+            if (buttonstateMODE == LOW)
+            {
+              TAPEGWMODE = !TAPEGWMODE;
+              if (TAPEGWMODE)
+                tapemode = "RD";
+              else
+                tapemode = "CD";
+              refreshscreen = 1;
+            }
+          }
+        }
+        lastbMODEstate = reading;
         
         if (refreshscreen == 1)
         {
           display.clearDisplay();
           display.setTextColor(WHITE);
           display.setTextSize(2);
+          display.setCursor(0,0);
+          display.print(tapemode);
           display.setCursor(42,0);
           display.print(motor_status[motorstatus]);
           display.setTextSize(1);
@@ -130,6 +152,8 @@ void Update_Motor_Status() {
   display.clearDisplay();
   display.setTextColor(WHITE);
   display.setTextSize(2);
+  display.setCursor(0,0);
+  display.print(tapemode);
   display.setCursor(42,0);
   display.print(motor_status[motorstatus]);
   display.setTextSize(1);
@@ -146,66 +170,10 @@ void Update_Show_Track() {
   display.clearDisplay();
   display.setTextColor(WHITE);
   display.setTextSize(2);
+  display.setCursor(0,0);
+  display.print(tapemode);
   display.setCursor(42,0);
   display.print(motor_status[motorstatus]);
   display.print(CurrentBlock);
-  display.display();
-}
-
-void Report_Status() {
-  while (NOTDONE)
-  {
-    ShowStatus();
-  }
-}
-
-void ShowStatus() {
-  //reading = digitalRead2f(BRAKEpin);
-  //if (reading == HIGH) {status[0] = "BRK";} else {status[0] = "OFF";}
-  
-  reading = digitalRead2f(STOPpin);
-  if (reading == HIGH) {status[0] = "STOP";} else {status[1] = "OFF";}
-  
-  reading = digitalRead2f(REVERSEpin);
-  if (reading == LOW) {status[1] = "REV";} else {status[2] = "OFF";}
-  
-  reading = digitalRead2f(FORWARDpin);
-  if (reading == LOW) {status[2] = "FWD";} else {status[3] = "OFF";}
-  
-  reading = digitalRead2f(SPEEDpin);
-  if (reading == HIGH) {status[3] = "FAST";} else {status[4] = "SLOW";}
-  
-  reading = digitalRead2f(MODEpin);
-  if (reading == HIGH) {status[4] = "READ";} else {status[5] = "WRITE";}
-  
-  reading = digitalRead2f(TRACKpin);
-  if (reading == HIGH) {status[5] = "A";} else {status[6] = "B";}
-
-  reading = digitalRead2f(MSENSEpin);
-  if (reading == HIGH) {status[6] = "MOVE";} else {status[7] = "|";}
-  
-  reading = digitalRead2f(TAPEINpin);
-  if (reading == LOW) {status[7] = "TIN";} else {status[8] = "TOUT";}
-
-  reading = digitalRead2f(TX_pin);
-  if (reading == LOW) {status[8] = "TXLOW";} else {status[9] = "TXHIGH";}
-
-  //reading = digitalRead2f(NOCONpin);
-  //if (reading == LOW) {status[10] = "NCLOW";} else {status[10] = "NCHIGH";}
-
-  reading = digitalRead(RXpin);
-  if (reading == LOW) {status[9] = "RXLOW";} else {status[11] = "RXHIGH";}
-
-  display.clearDisplay();
-  display.setTextColor(WHITE);
-  display.setTextSize(1);
-  display.setCursor(0,0);
-  for (int j=0; j<8; j++)
-  {
-    display.println(status[j]);
-  }
-  display.print(status[8]);
-  display.print("    ");
-  display.println(status[9]);
   display.display();
 }

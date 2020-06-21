@@ -2,7 +2,6 @@ void SendHeaderASM()
 {
   int bits = 7;
 
-  //Serial.println(CurrentBlock);
   Update_Show_Track();
   for (int i=6; i<20; i++)
   {
@@ -11,21 +10,17 @@ void SendHeaderASM()
     {      
       clockbyte = clockbyte ^ xorclock;
       if (clockbyte == 1)
-        //PORTD |= 0b00001000;                        // Set PD3 = HIGH
         PORTD = PORTD & 0b11110111;                 // Set PD3 = LOW
       else
-        //PORTD = PORTD & 0b11110111;                 // Set PD3 = LOW
         PORTD |= 0b00001000;                        // Set PD3 = HIGH
       _delay_us(31);
       if (headerdata[i] & (1 << bits))
       {
         clockbyte = clockbyte ^ xorclock;
         if (clockbyte == 1)
-        //PORTD |= 0b00001000;                        // Set PD3 = HIGH
-        PORTD = PORTD & 0b11110111;                 // Set PD3 = LOW
+          PORTD = PORTD & 0b11110111;                 // Set PD3 = LOW
         else
-        //PORTD = PORTD & 0b11110111;                 // Set PD3 = LOW
-        PORTD |= 0b00001000;                        // Set PD3 = HIGH
+          PORTD |= 0b00001000;                        // Set PD3 = HIGH
       }
       _delay_us(39);
       bits--;
@@ -34,10 +29,8 @@ void SendHeaderASM()
   //send last bit
   clockbyte = clockbyte ^ xorclock;
   if (clockbyte == 1)
-    //PORTD |= 0b00001000;                            // Set PD3 = HIGH
     PORTD = PORTD & 0b11110111;                     // Set PD3 = LOW
   else
-    //PORTD = PORTD & 0b11110111;                     // Set PD3 = LOW
     PORTD |= 0b00001000;                            // Set PD3 = HIGH 
 }
 
@@ -52,20 +45,16 @@ void SendDataASM()
     {      
       clockbyte = clockbyte ^ xorclock;
       if (clockbyte == 1)
-        //PORTD |= 0b00001000;                        // Set PD3 = HIGH
         PORTD = PORTD & 0b11110111;                 // Set PD3 = LOW
       else
-        //PORTD = PORTD & 0b11110111;                 // Set PD3 = LOW
         PORTD |= 0b00001000;                        // Set PD3 = HIGH
       _delay_us(31);
       if (blockdata[i] & (1 << bits))
       {
         clockbyte = clockbyte ^ xorclock;
         if (clockbyte == 1)
-        //PORTD |= 0b00001000;                        // Set PD3 = HIGH
         PORTD = PORTD & 0b11110111;                 // Set PD3 = LOW
           else
-        //PORTD = PORTD & 0b11110111;                 // Set PD3 = LOW
         PORTD |= 0b00001000;                        // Set PD3 = HIGH
       }
       _delay_us(39);
@@ -85,26 +74,21 @@ void SendCRCASM()
     {      
       clockbyte = clockbyte ^ xorclock;
       if (clockbyte == 1)
-        //PORTD |= 0b00001000;                        // Set PD3 = HIGH
         PORTD = PORTD & 0b11110111;                 // Set PD3 = LOW
       else
-        //PORTD = PORTD & 0b11110111;                 // Set PD3 = LOW
         PORTD |= 0b00001000;                        // Set PD3 = HIGH
       _delay_us(31);
       if (crcdata[i] & (1 << bits))
       {
         clockbyte = clockbyte ^ xorclock;
         if (clockbyte == 1)
-        //PORTD |= 0b00001000;                        // Set PD3 = HIGH
-        PORTD = PORTD & 0b11110111;                 // Set PD3 = LOW
+          PORTD = PORTD & 0b11110111;                 // Set PD3 = LOW
         else
-        //PORTD = PORTD & 0b11110111;                 // Set PD3 = LOW
-        PORTD |= 0b00001000;                        // Set PD3 = HIGH
+          PORTD |= 0b00001000;                        // Set PD3 = HIGH
       }
       _delay_us(39);
       bits--;
     }
   }
-  PORTD = PORTD & 0b11110111;                       // Set PD3 = LOW
-  //PORTD |= 0b00001000;                              // Set PD3 = HIGH 
+  PORTD = PORTD & 0b11110111;                       // Set PD3 = LOW 
 }

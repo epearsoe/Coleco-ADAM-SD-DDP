@@ -1,6 +1,6 @@
 //*****************************************************************************************
 //
-// Coleco ADAM SD DDP source code version 1.2
+// Coleco ADAM SD DDP source code version 1.4
 //07/28/2019 - Start, designed DDP riser interface PCB to TAP signals. Waiting for PCB.
 //09/09/2019 - Was able to read a sync byte today.
 //11/26/2019 - Successfully read block header from tape.
@@ -18,46 +18,31 @@
 //           - Initial release version 1.0
 //01/12/2020 - Version 1.1
 //           - Fixed SD card detection and display. Added option to insert card and press 'Mount' button to reinit SD.
-//           - Added STOP detection to prevent SD DDP from moving when physical DDP in motion.
+//           - Added STOP detection to prevent SD DDP from moving when physical DDP is in motion.
 //           - Modified ADAM_DDP_SD_Drive, Forward, ProcessButtons, SDCardSetup, Stop.
 //01/13/2020 - Version 1.2
 //           - Fixed problem with reading blocks after FastFoward.
 //05/27/2020 - Version 1.3
-//           - Changed virtual disk format from GW to HE which now allows for the SD DDP to work with a real DDP.
+//           - Changed virtual disk format from right directory (GW) to center directory (HE) which now allows for the SD DDP to work with a real DDP.
 //           - Successful block copy from real DDP with both left and center directory format to SD DDP.
 //           - Added SN74LS7406N to ensure HI-Z state when SD DDP is stopped.
+//06/17/2020 - Version 1.4
+//           - Added "Tape Mode" button to allow the use of both center (HE) and right directory (GW) real DDPs with the SD DDP.
+//             Whatever format tape you have in a real DDP drive you should also select on the SD DDP using the "Tape Mode" button.
 //*****************************************************************************************
 //
 // Emulates ADAM Digital Data Drive (DDP)
 // Full Compatibility: Works with all existing Adams. It bridges the ADAM Tape 6801 to
 //    the FAT16/FAT32 file system on the SD Card. This means no software to install on the ADAM.
-// Drive Emulation: Acts as a single ADAM DDP drive.
+// Drive Emulation: Acts as a single ADAM DDP drive. Because of hard coded timing in the ADAM the SD DDP
+//    block load speed is equivalent to a real DDP. The SD DDP is a little faster at fast forwarding and
+//    rewinding.
 // Disk Selection: Selects which of the 200 "ddp tapes" to use. This is selectable by using the buttons.
 // Disks are Files: These "ddp tapes" are simply files on the SD Card, and can be manipulated as such
 //    when the SD card is plugged in to a PC/Mac.
 // Existing Disks: Works with .ddp images found on the Internet. Put the SD Card in a
 //    PC/Mac and copy the files on to the SD card. Put the SD Card in to the ADAM SD DDP and go!
 //
-// TEST PINOUT
-//
-// SD CARD
-//  Pin 10 CS
-//  Power 3.3V
-//  GROUND
-//  Pin 50 MISO  Pin 51 MOSI
-//  Pin 52 SCK
-// Breadboard
-//  5V from Arduino to Breadboard + rail
-//  Ground from Arduino to Breadboard - rail
-// OLED
-//  5V from Breadboard + rail
-//  GROUND from Breadboard + rail
-//  Pin 20 SDA & 21 SCL
-//
-//  TEST SKETCH REFERENCE
-//  ADAM_DDP_TEST1B - Successful read from tape drive
-//  ADAM_DDP_TEST1DB - Successful read from tape 6801
-//  ADAM_DDP_TEST2 - Read from ADAM tape indicator pins
 //*****************************************************************************************
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -92,14 +77,13 @@ const int chipSelect = 10;                 // Chip select (CS) pin for the SD Ca
 byte refreshscreen = 1;                    // Flag to refresh the LED display
 String motor_status[] = {"STOP", " >  ", " <  ", " >> ", " << "};
 int motorstatus = 0;
-String status[] = { "BRK", "STOP", "REV", "FWD","FAST",
-                     "READ", "A", "MOVE", "TOUT", "TXHIGH","NCHIGH", "RXHIGH"};
+String tapemode = "CD";
 
 //arrays for sending and receiving data
 byte headerdata[20];                       //array for header data to be sent to tape 6801
 byte blockdata[1040];                      //array for 1K of block data read from sd to be sent to tape 6801
 byte crcdata[505];                         //array for calculated checksum for 1K of data to be sent to tape 6801
-byte writedata[1040];                      //array for data received from tape 6801 to be written
+//byte writedata[1040];                    //and for data received from tape 6801 to be written
                                            //↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
                                            //Format of data tape 6801 sends:
                                            //0 byte | 0 byte | 0 byte | 0 byte | SYNC byte (16H) | DATA 1024 bytes | 0 byte | 0 byte | SYNC Byte (16H) | CRC High Byte | CRC Low byte | 0 byte
@@ -145,10 +129,8 @@ bool REVERSEMOTION = false;
 bool STOPPED = true;
 bool NOTDONE = true;
 bool UPDATESTATUS = false;
-bool DEBUG = false;                        //change to true to enable ddp indicator monitor on OLED by pressing 'BACK' button
-bool MONITORON = false;
 bool READSTOP = false;
-bool MSENSEPULSE = false;
+bool TAPEGWMODE = false;
 
 //butons
 int reading;
@@ -170,6 +152,12 @@ GPIO_pin_t bMOUNTpin = DP26;
 int buttonstateMOUNT;
 int lastbMOUNTstate = LOW;
 unsigned long lastDebounceTimeMOUNT = 0;   // the last time the output pin was toggled
+//mode toggle between GW and HE tape formats
+int buttonMODEpin = 28;
+GPIO_pin_t bMODEpin = DP28;
+int buttonstateMODE;
+int lastbMODEstate = LOW;
+unsigned long lastDebounceTimeMODE = 0;   // the last time the output pin was toggled
 unsigned long debounceDelay = 50;          // the debounce time; increase if the output flickers
 
 //timers
@@ -195,9 +183,7 @@ void setup() {
   EIFR = bit (INTF2);                 // Clear flag for interrupt 2
 
   pinMode(TXpin,OUTPUT);
-  //PORTD |= 0b00001000;                // Set PD3 (TX) = HIGH
   digitalWrite(TXpin, LOW);
-  //PORTD = PORTD & 0b11110111;         // Set PD3 = LOW
   
   //set LED pin
   pinMode(STATUSLED,OUTPUT);          // Set the status LED as output
@@ -233,12 +219,6 @@ void setup() {
   delay(2000);
   Serial.println("Coleco ADAM SD DDP"); 
   Serial.println("Starting up...");
-  if (digitalRead(TRACK) == HIGH) //track A
-    Serial.println("TRACK A");
-  else
-    Serial.println("TRACK B");
-  Serial.print("Current Track= ");
-  Serial.println(CurrentTrack);
     
   //initialize sd card
   reinitsd:
@@ -257,6 +237,7 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+
   readSTOP = digitalRead2f(STOPpin);
   readSPEED = digitalRead2f(SPEEDpin);
   readFORWARD = digitalRead2f(FORWARDpin);
@@ -269,9 +250,6 @@ void loop() {
     Update_Motor_Status();
     UPDATESTATUS = false;
   }
-  
-  if (MONITORON)
-    ShowStatus();
     
   if (readTRACK == HIGH) //track A
   {
@@ -280,10 +258,10 @@ void loop() {
       CurrentBlock = 128 + CurrentBlock;
       CurrentTrack = 1;
       LoadBlock(CurrentBlock,ddpfileIndex);
-      Serial.print("Current Block= ");
-      Serial.println(CurrentBlock);
-      Serial.print("Current Track= ");
-      Serial.println(CurrentTrack);
+      //Serial.print("Current Block= ");
+      //Serial.println(CurrentBlock);
+      //Serial.print("Current Track= ");
+      //Serial.println(CurrentTrack);
     }
   }
   else                            //track B
@@ -293,10 +271,10 @@ void loop() {
       CurrentBlock = CurrentBlock - 128;
       CurrentTrack = 0;
       LoadBlock(CurrentBlock,ddpfileIndex);
-      Serial.print("Current Block= ");
-      Serial.println(CurrentBlock);
-      Serial.print("Current Track= ");
-      Serial.println(CurrentTrack);
+      //Serial.print("Current Block= ");
+      //Serial.println(CurrentBlock);
+      //Serial.print("Current Track= ");
+      //Serial.println(CurrentTrack);
     }
   }
 
@@ -305,7 +283,6 @@ void loop() {
     if ((readFORWARD == LOW) && (readSPEED == HIGH))
     {
       LastCommandTime = millis();
-      //Serial.println("F");
       attachInterrupt(digitalPinToInterrupt(3), Stop, RISING);
       READSTOP = false;
       STOPPED = false;
@@ -361,7 +338,6 @@ void loop() {
     else if (readREVERSE == LOW)
     {
       LastCommandTime = millis();
-      //Serial.println("R");
       if (REVERSEMOTION == true)
       {
               Rewind();
@@ -383,7 +359,6 @@ void loop() {
     {
       if ((FORWARDMOTION == true) || (REVERSEMOTION == true))
       {
-        //Serial.println("C0");
         UPDATESTATUS = true;
         MOTORMOTION = false;
         FORWARDMOTION = false;
