@@ -10,16 +10,17 @@ NOTE: Be careful and DO NOT connect anything to the voltage pins on the ADAM DDP
 Description:
 
 Emulates ADAM Digital Data Drive (DDP)
+
 Full Compatibility: Works with all existing ADAMs. It bridges the ADAM Tape 6801 to
     the FAT16/FAT32 file system on the SD Card. This means no software to install on the ADAM.
-Drive Emulation: Acts as a single ADAM DDP drive. Because of hard coded timing in the ADAM the SD DDP
-    block load speed is equivalent to a real DDP. The SD DDP is a little faster at fast forwarding and
-    rewinding.
+
+Drive Emulation: Acts as a single ADAM DDP drive. Because of hard coded timing in the ADAM the SD DDP block load speed is equivalent to a real DDP. The SD DDP is a little faster at fast forwarding and rewinding.
+
 Disk Selection: The MOUNT button selects which of the "ddp tapes" to use. You can browse through the available files using the BACK and FORWARD buttons.
-Disks are Files: These "ddp tapes" are simply files on the SD Card, and can be manipulated as such
-    when the SD card is plugged in to a PC/Mac.
-Existing Disks: Works with .ddp images found on the Internet. Put the SD Card in a
-    Using a PC or Mac, copy up to 100 files (per directory) to a FAT32 formated SD card. These must be in ADAM DDP format commonly found on the web. You can find many images at:
+
+Disks are Files: These "ddp tapes" are simply files on the SD Card, and can be manipulated as such when the SD card is plugged in to a PC/Mac.
+
+Existing Disks: Works with .ddp images found on the Internet. Using a PC or Mac, copy up to 100 files (per directory) to a FAT32 formated SD card. These must be in ADAM DDP format commonly found on the web. You can find many images at:
 
 http://adamarchive.org/
 
