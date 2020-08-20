@@ -28,14 +28,17 @@ ADAM SD DDP Versions:
 The internal power version is for use with the Coleco ADAM SD DDP Internal Power PCB. The components on the PCB are powered by tapping 5V from pin J11-4 on the ADAM DDP Connector (or J13-4).
 
 Building your own SD DDP:
+
 Follow the instructions provided in the "Coleco ADAM SD DDP Build Guide and Info Pack.pdf".
 
 Known Quirks of the ADAM SD DDP Drive:
 1. The "Tape Mode" button.  Coleco used two different tape formats for the ADAM; a center directory format and a right directory format (primarily used for "Super Games").  If you plan to use a real DDP drive with the ADAM SD DDP you should use the "Tape Mode" button to set the ADAM SD DDP to the same format as the tape you will be using in the real DDP. If you want to switch tape formats you will need to select it with the "Tape Mode" button and then pull the ADAM computer reset switch. This problem exists also if you are using two real ADAM DDP drives.
 
 ADAM SD DDP Drive OLED Display Legend:
+
 1. In the top left corner of the screen will be the letters "CD" for center directory tape mode or "RD" for right directory tape mode.  This can be changed using the "Tape Mode" button.
 2. In the top center of the screen will be the current drive status. This could show "STOP", ">>" (fast forward), "<<" (fast rewind), "> NNN" (slow forward where NNN is the current track), or "<" (slow rewind).
 3. Below the top line will be a filename of a DDP image (if any .DDP files are found on the SD card). If the text is in reverse mode this means this file is "mounted".
+4. If the filename is a subdirectory you can press the MOUNT button to enter the subdirectory.
 
 Included are two utility programs called deinterleave.exe and interleave.exe for Windows 10 PCs. Deinterleave.exe will convert a ADAM DSK image to an ADAM DDP formated image.  Interleave.exe does the opposite. It will convert an ADAM DDP image to an ADAM DSK formatted image.
