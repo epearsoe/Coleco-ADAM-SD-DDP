@@ -1,4 +1,4 @@
-Coleco ADAM SD DDP firmware version 1.5 7/2/2020 (initial release 01/01/2020)
+Coleco ADAM SD DDP firmware version 1.6 2/26/2022 (initial release 01/01/2020)
 
 The information within this document is to be used at your own risk. Any loss of data or failure of hardware is the sole responsibility of the end
 user. If you do not agree to these terms and conditions, do not continue.
